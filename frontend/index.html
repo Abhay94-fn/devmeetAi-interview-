@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="DevMeet V2 — AI-powered mock interview platform for developers. Practice coding interviews with real-time Gemini AI feedback." />
+    <title>DevMeet — AI Mock Interview Platform</title>
+  </head>
+  <body>
+    <script>
+      if (typeof global === "undefined") {
+        window.global = window;
+      }
+      if (typeof process === "undefined") {
+        window.process = { env: { NODE_ENV: window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "development" : "production" } };
+      }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

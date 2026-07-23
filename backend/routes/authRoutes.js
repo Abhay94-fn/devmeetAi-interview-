@@ -1,0 +1,14 @@
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { protect } from '../middleware/authMiddleware.js';
+import { register, login, googleAuth, googleAuthToken, refreshToken, logout, getMe } from '../controllers/authController.js';
+const router = express.Router();
+const lim = rateLimit({ windowMs:15*60*1000, max:20, message:{ message:'Too many attempts' }});
+router.post('/register', lim, register);
+router.post('/login', lim, login);
+router.post('/google', lim, googleAuth);
+router.post('/google-token', lim, googleAuthToken);
+router.post('/refresh', refreshToken);
+router.post('/logout', protect, logout);
+router.get('/me', protect, getMe);
+export default router;
