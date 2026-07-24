@@ -58,12 +58,19 @@ export default function AuthPage() {
     import.meta.env.VITE_GOOGLE_CLIENT_ID.includes("your_google_client_id") ||
     import.meta.env.VITE_GOOGLE_CLIENT_ID === "placeholder";
 
-  const handleGoogleDevFallback = async () => {
-    const inputEmail = window.prompt(
-      "Enter your Google Email ID to sign in:",
-      email || "ad302690812@gmail.com"
-    );
-    if (!inputEmail || !inputEmail.trim()) return; // User cancelled or left empty
+  const handleGoogleDevFallback = async (presetEmail = null) => {
+    let inputEmail = presetEmail;
+    if (!inputEmail) {
+      inputEmail = window.prompt(
+        "Enter your Google Email ID to sign in:",
+        email || "ad302690812@gmail.com"
+      );
+    }
+
+    // Default to ad302690812@gmail.com if prompt was dismissed
+    if (!inputEmail || !inputEmail.trim()) {
+      inputEmail = "ad302690812@gmail.com";
+    }
 
     const cleanEmail = inputEmail.trim().toLowerCase();
     const rawName = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
@@ -82,7 +89,8 @@ export default function AuthPage() {
       }
     } catch (err) {
       console.error("Dev Google sign-in error:", err);
-      toast.error("Google sign-in failed: " + err.message);
+      const msg = err.response?.data?.message || err.message || "Google sign-in failed";
+      toast.error("Google sign-in error: " + msg);
     } finally {
       setSubmitting(false);
     }

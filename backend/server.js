@@ -36,18 +36,24 @@ import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 import interviewerRoutes from "./routes/interviewerRoutes.js";
 import registerSocketHandlers from "./socket/index.js";
 
+import fs from "fs";
+
 const app = express();
 const server = http.createServer(app);
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+// Dynamic origin reflecting to satisfy credentials: true for Vercel and local clients
+const corsOriginDelegate = (origin, callback) => {
+  callback(null, true);
+};
 
 const io = new SocketIOServer(server, {
-  cors: { origin: CLIENT_ORIGIN, methods: ["GET", "POST"], credentials: true }
+  cors: { origin: corsOriginDelegate, methods: ["GET", "POST"], credentials: true }
 });
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: corsOriginDelegate,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -62,6 +68,7 @@ const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500 });
 app.use("/api", apiLimiter);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
+app.get("/", (req, res) => res.json({ message: "🚀 DevMeet Backend API & Socket.IO Server is Live!" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
@@ -73,17 +80,18 @@ app.use("/api/interviewer", interviewerRoutes);
 
 registerSocketHandlers(io);
 
-/* ---------- Serve static assets in production ---------- */
+/* ---------- Serve static assets in production if frontend build exists ---------- */
 if (process.env.NODE_ENV === "production") {
   const distPath = path.resolve(process.cwd(), "../frontend/dist");
-  app.use(express.static(distPath));
-
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) {
-      return next();
-    }
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 }
 
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));

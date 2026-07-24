@@ -27,7 +27,7 @@ api.interceptors.request.use((config) => {
 });
 
 // Auto-refresh on 401 — but skip auth endpoints
-const AUTH_ENDPOINTS = ["/auth/login", "/auth/register", "/auth/google"];
+const AUTH_ENDPOINTS = ["/auth/login", "/auth/register", "/auth/google", "/auth/google-token"];
 
 api.interceptors.response.use(
   (response) => response,
