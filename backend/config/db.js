@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import bcrypt from "bcryptjs";
 import path from "path";
+import fs from "fs";
 import User from "../models/User.js";
 import CandidateProfile from "../models/CandidateProfile.js";
 import InterviewerProfile from "../models/InterviewerProfile.js";
@@ -17,9 +18,13 @@ export default async function connectDB() {
       console.log(`MongoDB Atlas connected: ${mongoose.connection.host}`);
     } else {
       console.log("MONGO_URI not set — starting standard in-memory MongoDB with persistence...");
+      const dbPath = path.resolve(process.cwd(), "mongodb-data");
+      if (!fs.existsSync(dbPath)) {
+        fs.mkdirSync(dbPath, { recursive: true });
+      }
       mongod = await MongoMemoryServer.create({
         instance: {
-          dbPath: path.resolve(process.cwd(), "mongodb-data"),
+          dbPath,
           storageEngine: "wiredTiger",
         },
       });
