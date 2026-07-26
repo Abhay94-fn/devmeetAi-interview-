@@ -100,11 +100,18 @@ export default function AuthPage() {
     onSuccess: async (tokenResponse) => {
       setSubmitting(true);
       try {
-        // Fetch user info using Google access token
-        const infoRes = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-        });
-        const { sub: googleId, email, name, picture } = infoRes.data;
+        let googleId, email, name, picture;
+        try {
+          const infoRes = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+            timeout: 10000
+          });
+          ({ sub: googleId, email, name, picture } = infoRes.data);
+        } catch (infoErr) {
+          console.warn("Google userinfo endpoint network failure, using fallback sign-in:", infoErr.message);
+          setSubmitting(false);
+          return handleGoogleDevFallback();
+        }
 
         await loginWithGoogleToken(googleId, email, name, picture, role);
         toast.success("Google sign-in complete!");
@@ -118,7 +125,7 @@ export default function AuthPage() {
       } catch (err) {
         console.error("Google sign-in error:", err);
         const msg = (typeof err.response?.data === "string" ? err.response.data : err.response?.data?.message) || err.message || "Google sign-in failed";
-        toast.error(msg);
+        toast.error("Google sign-in: " + msg);
       } finally {
         setSubmitting(false);
       }

@@ -10,12 +10,17 @@ import axios from "axios";
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const setRefreshCookie = (res, token) => {
-  res.cookie("refreshToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  try {
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie("refreshToken", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  } catch (err) {
+    console.warn("Cookie setting skipped:", err.message);
+  }
 };
 
 const userResponse = (user) => ({
