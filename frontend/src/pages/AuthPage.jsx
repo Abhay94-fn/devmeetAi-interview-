@@ -89,8 +89,12 @@ export default function AuthPage() {
       }
     } catch (err) {
       console.error("Dev Google sign-in error:", err);
-      const msg = err.response?.data?.message || err.message || "Google sign-in failed";
-      toast.error("Google sign-in error: " + msg);
+      const rawMsg = err.response?.data?.message || err.message || "";
+      const isNetwork = rawMsg.toLowerCase().includes("network error") || rawMsg.toLowerCase().includes("timeout");
+      const msg = isNetwork
+        ? "Connecting to backend... Click once more to enter!"
+        : rawMsg || "Google sign-in failed";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }

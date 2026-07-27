@@ -41,24 +41,30 @@ import fs from "fs";
 const app = express();
 const server = http.createServer(app);
 
-// Dynamic origin reflecting to satisfy credentials: true for Vercel and local clients
-const corsOriginDelegate = (origin, callback) => {
-  callback(null, true);
-};
-
 const io = new SocketIOServer(server, {
-  cors: { origin: corsOriginDelegate, methods: ["GET", "POST"], credentials: true }
+  cors: { origin: (origin, cb) => cb(null, true), methods: ["GET", "POST"], credentials: true }
 });
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(
-  cors({
-    origin: corsOriginDelegate,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  })
-);
+
+// Fail-safe CORS and preflight handling for production cross-domain clients
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
