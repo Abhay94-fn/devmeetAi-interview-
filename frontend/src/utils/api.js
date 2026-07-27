@@ -3,7 +3,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   withCredentials: true,
-  timeout: 45000, // 45s — session creation calls Gemini to generate questions
+  timeout: 90000, // 90s — handles Render free tier container cold starts (takes 30-50s when sleeping)
 });
 
 // Safe storage helper — Edge tracking prevention can block localStorage
@@ -26,7 +26,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401 — but skip auth endpoints
+// Auto-refresh on 401 & retry on Render cold-start Network Errors
 const AUTH_ENDPOINTS = ["/auth/login", "/auth/register", "/auth/google", "/auth/google-token"];
 
 api.interceptors.response.use(
@@ -35,7 +35,15 @@ api.interceptors.response.use(
     const original = error.config;
     const requestUrl = original?.url || "";
 
-    // Never intercept auth endpoints — let them propagate errors to the UI
+    // Retry once if Network Error (Render backend sleeping & waking up)
+    if (!error.response && (!error.code || error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") && !original._networkRetry) {
+      original._networkRetry = true;
+      console.warn("Network error or cold-start timeout — Retrying request after backend wakes up...");
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      return api(original);
+    }
+
+    // Never intercept auth endpoints for 401 refresh — let them propagate errors to the UI
     const isAuthRequest = AUTH_ENDPOINTS.some((ep) => requestUrl.includes(ep));
     if (isAuthRequest) {
       return Promise.reject(error);
